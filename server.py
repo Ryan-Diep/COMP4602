@@ -1,8 +1,7 @@
 from mesa.visualization.modules import NetworkModule, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
-from mesa.visualization.UserParam import UserSettableParameter
-from model import MisinformationModel
-import networkx as nx
+from mesa.visualization.UserParam import Choice, Slider
+from model import RumorSpreadModel, MisinformationModel
 
 def network_portrayal(G):
     nodes = []
@@ -22,50 +21,96 @@ def network_portrayal(G):
             "shape": "circle"
         }
 
-        if agent.state == "Infected":
+        # Handle both model's states
+        if "INFECTED" in agent.state:
             portrayal["color"] = "red"
-        elif agent.state == "Exposed":
+        elif "Exposed" in agent.state:
             portrayal["color"] = "orange"
-        elif agent.state == "Resistant":
+        elif "Resistant" in agent.state or "VACCINATED" in agent.state:
             portrayal["color"] = "blue"
+        elif "NEUTRAL" in agent.state or "Susceptible" in agent.state:
+            portrayal["color"] = "gray"
 
         nodes.append(portrayal)
 
     for source, target in G.edges():
         edges.append({"source": source, "target": target, "color": "lightgray"})
 
-
     return {"nodes": nodes, "edges": edges}
-
-
-
-
-def get_network(model):
-    portrayal = model.graph.copy()
-    for node in portrayal.nodes:
-        portrayal.nodes[node]["agent"] = model.schedule.agents[node]
-    return portrayal
 
 network = NetworkModule(network_portrayal, 500, 864)
 
-chart = ChartModule([
+# Create charts for both models
+rumor_chart = ChartModule([
+    {"Label": "Infected", "Color": "red"},
+    {"Label": "Neutral", "Color": "gray"},
+    {"Label": "Vaccinated", "Color": "blue"}
+])
+
+misinfo_chart = ChartModule([
     {"Label": "Susceptible", "Color": "gray"},
     {"Label": "Exposed", "Color": "orange"},
     {"Label": "Infected", "Color": "red"},
     {"Label": "Resistant", "Color": "blue"},
 ])
 
+model_params = {
+    "model_type": Choice(
+        "Model Type", 
+        value="Rumor Spread",
+        choices=["Rumor Spread", "Misinformation"]
+    ),
+    "num_agents": Slider("Number of Agents", 1000, 100, 5000, 100),
+    "initial_outbreak_size": Slider("Initially Infected", 50, 1, 500, 1),
+}
+
+rumor_params = {
+    "avg_node_degree": Slider("Avg Node Degree", 5, 1, 10, 1),
+    "prob_infect": Slider("Infection Probability", 0.3, 0.01, 1, 0.01),
+    "prob_accept_deny": Slider("Denial Acceptance", 0.2, 0.01, 1, 0.01),
+    "prob_make_denier": Slider("Denier Creation", 0.1, 0.01, 1, 0.01),
+}
+
+misinfo_params = {
+    "m_links": Slider("Links per New Node", 4, 1, 10, 1),
+    "exposure_threshold": Slider("Exposure Threshold", 2, 1, 10, 1),
+    "fact_checker_ratio": Slider("Fact Checker Ratio", 0.02, 0.0, 0.5, 0.01),
+    "spread_probability": Slider("Spread Probability", 0.6, 0.0, 1.0, 0.05),
+}
+
+class ModelWrapper:
+    def __init__(self, model_type, *args, **kwargs):
+        if model_type == "Rumor Spread":
+            # Filter kwargs to only include RumorSpreadModel parameters
+            rumor_kwargs = {
+                k: kwargs[k] 
+                for k in ["num_agents", "avg_node_degree", "initial_outbreak_size", 
+                         "prob_infect", "prob_accept_deny", "prob_make_denier"]
+                if k in kwargs
+            }
+            self.model = RumorSpreadModel(**rumor_kwargs)
+        else:
+            # Filter kwargs to only include MisinformationModel parameters
+            misinfo_kwargs = {
+                k: kwargs[k] 
+                for k in ["num_agents", "initial_outbreak_size", "m_links", 
+                         "exposure_threshold", "fact_checker_ratio", "spread_probability"]
+                if k in kwargs
+            }
+            self.model = MisinformationModel(**misinfo_kwargs)
+    
+    def step(self):
+        self.model.step()
+    
+    def __getattr__(self, name):
+        # Delegate unknown attributes to the underlying model
+        return getattr(self.model, name)
+
 server = ModularServer(
-    MisinformationModel,
-    [network, chart],
-    "Misinformation Contagion Model",
-    {
-        "num_agents": 1000,
-        "exposure_threshold": UserSettableParameter("slider", "Exposure Threshold", 2, 1, 10, 1),
-        "fact_checker_ratio": UserSettableParameter("slider", "Fact Checker Ratio", 0.02, 0.0, 0.5, 0.01),
-        "spread_probability": UserSettableParameter("slider", "Spread Probability", 0.6, 0.0, 1.0, 0.05),
-        "m_links": 4
-    }
+    ModelWrapper,
+    [network, rumor_chart, misinfo_chart],
+    "Contagion Model Comparison",
+    {**model_params, **rumor_params, **misinfo_params}
 )
 
 server.port = 8521
