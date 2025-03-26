@@ -80,22 +80,23 @@ misinfo_params = {
 
 class ModelWrapper:
     def __init__(self, model_type, *args, **kwargs):
+        filtered_kwargs = kwargs.copy()
+        
         if model_type == "Rumor Spread":
-            # Filter kwargs to only include RumorSpreadModel parameters
             rumor_kwargs = {
-                k: kwargs[k] 
+                k: filtered_kwargs[k] 
                 for k in ["num_agents", "avg_node_degree", "initial_outbreak_size", 
                          "prob_infect", "prob_accept_deny", "prob_make_denier"]
-                if k in kwargs
+                if k in filtered_kwargs
             }
+            rumor_kwargs.pop('initial_outbreak_size', None)
             self.model = RumorSpreadModel(**rumor_kwargs)
         else:
-            # Filter kwargs to only include MisinformationModel parameters
             misinfo_kwargs = {
-                k: kwargs[k] 
-                for k in ["num_agents", "initial_outbreak_size", "m_links", 
+                k: filtered_kwargs[k] 
+                for k in ["num_agents", "m_links", 
                          "exposure_threshold", "fact_checker_ratio", "spread_probability"]
-                if k in kwargs
+                if k in filtered_kwargs
             }
             self.model = MisinformationModel(**misinfo_kwargs)
     
