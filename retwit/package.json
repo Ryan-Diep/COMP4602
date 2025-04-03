@@ -1,0 +1,8 @@
+{
+  "type":"module",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "node": "^18.20.8",
+    "rettiwt-api": "^4.2.0"
+  }
+}
