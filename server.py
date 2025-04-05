@@ -82,6 +82,8 @@ class ModelWrapper:
     def __init__(self, model_type, *args, **kwargs):
         filtered_kwargs = kwargs.copy()
         
+        custom_network = filtered_kwargs.pop('custom_network', None)
+
         if model_type == "Rumor Spread":
             rumor_kwargs = {
                 k: filtered_kwargs[k] 
@@ -90,7 +92,7 @@ class ModelWrapper:
                 if k in filtered_kwargs
             }
             rumor_kwargs.pop('initial_outbreak_size', None)
-            self.model = RumorSpreadModel(**rumor_kwargs)
+            self.model = RumorSpreadModel(**rumor_kwargs, custom_network=custom_network)
         else:
             misinfo_kwargs = {
                 k: filtered_kwargs[k] 
@@ -98,7 +100,7 @@ class ModelWrapper:
                          "exposure_threshold", "fact_checker_ratio", "spread_probability"]
                 if k in filtered_kwargs
             }
-            self.model = MisinformationModel(**misinfo_kwargs)
+            self.model = MisinformationModel(**misinfo_kwargs, custom_network=custom_network)
     
     def step(self):
         self.model.step()
