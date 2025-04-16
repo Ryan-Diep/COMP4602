@@ -3,8 +3,10 @@ import networkx as nx
 from server import server, ModelWrapper
 
 if __name__ == "__main__":
-    adj_matrix = np.load("adjacency_matrix-no-filter-twitter15.npy")
+    # adj_matrix = np.load("adjacency_matrix-no-filter-twitter15.npy")
     # adj_matrix = np.load("adjacency_matrix-no-filter.npy")
+    adj_matrix = np.load("adjacency_matrix.npy")
+
     G = nx.from_numpy_array(adj_matrix)
     mapping = {old_label: int(i) for i, old_label in enumerate(G.nodes())}
     G = nx.relabel_nodes(G, mapping)

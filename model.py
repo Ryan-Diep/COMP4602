@@ -8,7 +8,7 @@ class RumorSpreadModel(Model):
     def __init__(self, 
                  num_agents=1000, 
                  avg_node_degree=5, 
-                 initial_outbreak_size=1510*0.005, 
+                 initial_outbreak_size=7, 
                  prob_infect=0.02,
                  prob_accept_deny=0.00,
                  prob_make_denier=0.00,
@@ -20,7 +20,6 @@ class RumorSpreadModel(Model):
         self.prob_infect = prob_infect
         self.prob_accept_deny = prob_accept_deny
         self.prob_make_denier = prob_make_denier
-
         if custom_network is not None:
             self.network = custom_network
             self.num_agents = len(custom_network.nodes())
@@ -30,7 +29,6 @@ class RumorSpreadModel(Model):
         
         self.schedule = RandomActivation(self)
         self.agents = {} 
-
         for i in self.network.nodes():
             agent = RumorAgent(i, self)
             self.agents[i] = agent
@@ -38,7 +36,7 @@ class RumorSpreadModel(Model):
             self.network.nodes[i]["agent"] = agent 
         
         node_list = list(self.network.nodes())
-        initially_infected = self.random.sample(node_list, min(initial_outbreak_size, len(node_list)))
+        initially_infected = self.random.sample(node_list, min(int(initial_outbreak_size), len(node_list)))
         for agent_id in initially_infected:
             self.agents[agent_id].state = "INFECTED"
         
@@ -55,23 +53,55 @@ class RumorSpreadModel(Model):
         self.schedule.step()
 
 class MisinformationModel(Model):
-    def __init__(self, num_agents=1000, m_links=4, exposure_threshold=2, fact_checker_ratio=0.02, spread_probability=0.6, custom_network=None):
+    def __init__(self, 
+                num_agents=1000, 
+                avg_node_degree=4,
+                exposure_threshold=2,
+                initial_outbreak_size=5,
+                prob_accept_deny=0.00,
+                prob_make_denier=0.02, 
+                prob_infect=0.02,
+                custom_network=None):
         super().__init__()
         self.num_agents = num_agents
         self.exposure_threshold = exposure_threshold
-        self.spread_probability = spread_probability
+        self.prob_infect = prob_infect
+        self.prob_accept_deny = prob_accept_deny
+        self.prob_make_denier = prob_make_denier
+        self.initial_outbreak_size = initial_outbreak_size
+        
         if custom_network is not None:
             self.graph = custom_network
             self.num_agents = len(custom_network.nodes())
         else:
-            self.graph = nx.barabasi_albert_graph(num_agents, m_links)
+            self.graph = nx.barabasi_albert_graph(num_agents, avg_node_degree)
         self.G = self.graph 
-        self.schedule = BaseScheduler(self)
+        self.schedule = RandomActivation(self)  # Changed to RandomActivation to match RumorModel
         self.running = True
-        self.beacons = set()
-        self._create_agents(fact_checker_ratio)
-        for i, agent in enumerate(self.schedule.agents):
+        
+        # Create agents
+        self.agents = {}
+        for i in self.graph.nodes():
+            agent = SocialAgent(i, self)
+            self.agents[i] = agent
+            self.schedule.add(agent)
             self.graph.nodes[i]["agent"] = agent
+        
+        # Set initial deniers (resistant agents)
+        node_list = list(self.graph.nodes())
+        initial_denier_count = int(self.num_agents * self.prob_make_denier)
+        initial_deniers = self.random.sample(node_list, min(initial_denier_count, len(node_list)))
+        for agent_id in initial_deniers:
+            self.agents[agent_id].state = "Resistant"
+        
+        # Set initial infected agents
+        # First filter out nodes that are already deniers
+        uninfected_nodes = [node for node in node_list if self.agents[node].state != "Resistant"]
+        initially_infected = self.random.sample(uninfected_nodes, 
+                                                min(int(initial_outbreak_size), len(uninfected_nodes)))
+        for agent_id in initially_infected:
+            self.agents[agent_id].state = "Infected"
+        
         self.datacollector = DataCollector(
             model_reporters={
                 "Susceptible": lambda m: self.count_state("Susceptible"),
@@ -80,27 +110,6 @@ class MisinformationModel(Model):
                 "Resistant": lambda m: self.count_state("Resistant")
             }
         )
-    
-    def _create_agents(self, fact_checker_ratio):
-        degrees = dict(self.graph.degree())
-        sorted_agents = sorted(degrees.items(), key=lambda x: x[1], reverse=True)
-        beacon_count = int(self.num_agents * fact_checker_ratio)
-        self.beacons = set(agent for agent, degree in sorted_agents[:beacon_count])
-        
-        for i in range(self.num_agents):
-            if i in self.beacons:
-                state = "Resistant"
-            else:
-                state = "Susceptible"
-            a = SocialAgent(i, self, initial_state=state)
-            self.schedule.add(a)
-            self.graph.nodes[i]["agent"] = a  
-        
-        # Infect a few random non-beacon agents
-        non_beacons = [i for i in range(self.num_agents) if i not in self.beacons]
-        initial_infected = self.random.sample(non_beacons, 10)
-        for idx in initial_infected:
-            self.schedule.agents[idx].state = "Infected"
     
     def step(self):
         self.datacollector.collect(self)
