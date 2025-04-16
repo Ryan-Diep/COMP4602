@@ -8,10 +8,10 @@ class RumorSpreadModel(Model):
     def __init__(self, 
                  num_agents=1000, 
                  avg_node_degree=5, 
-                 initial_outbreak_size=5, 
-                 prob_infect=0.05,
-                 prob_accept_deny=0.05,
-                 prob_make_denier=0.05,
+                 initial_outbreak_size=1510*0.005, 
+                 prob_infect=0.02,
+                 prob_accept_deny=0.00,
+                 prob_make_denier=0.00,
                  custom_network=None):
         super().__init__()
         self.num_agents = num_agents
@@ -30,12 +30,6 @@ class RumorSpreadModel(Model):
         
         self.schedule = RandomActivation(self)
         self.agents = {} 
-        
-        # for i in range(self.num_agents):
-        #     agent = RumorAgent(i, self)
-        #     self.agents[i] = agent
-        #     self.schedule.add(agent)
-        #     self.network.nodes[i]["agent"] = agent  
 
         for i in self.network.nodes():
             agent = RumorAgent(i, self)

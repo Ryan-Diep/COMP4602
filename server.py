@@ -1,6 +1,6 @@
 from mesa.visualization.modules import NetworkModule, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
-from mesa.visualization.UserParam import Choice, Slider
+from mesa.visualization.UserParam import Choice, NumberInput
 from model import RumorSpreadModel, MisinformationModel
 
 def network_portrayal(G):
@@ -60,45 +60,42 @@ model_params = {
         value="Rumor Spread",
         choices=["Rumor Spread", "Misinformation"]
     ),
-    "num_agents": Slider("Number of Agents", 1000, 100, 5000, 100),
-    "initial_outbreak_size": Slider("Initially Infected", 50, 1, 500, 1),
+    "initial_outbreak_size": NumberInput("Initially Infected", value=5),
 }
 
 rumor_params = {
-    "avg_node_degree": Slider("Avg Node Degree", 5, 1, 10, 1),
-    "prob_infect": Slider("Infection Probability", 0.3, 0.01, 1, 0.01),
-    "prob_accept_deny": Slider("Denial Acceptance", 0.2, 0.01, 1, 0.01),
-    "prob_make_denier": Slider("Denier Creation", 0.1, 0.01, 1, 0.01),
+    "prob_infect": NumberInput("Infection Probability", value=0.05),
+    "prob_accept_deny": NumberInput("Denial Acceptance", value=0.05),
+    "prob_make_denier": NumberInput("Denier Creation", value=0.05),
 }
 
 misinfo_params = {
-    "m_links": Slider("Links per New Node", 4, 1, 10, 1),
-    "exposure_threshold": Slider("Exposure Threshold", 2, 1, 10, 1),
-    "fact_checker_ratio": Slider("Fact Checker Ratio", 0.02, 0.0, 0.5, 0.01),
-    "spread_probability": Slider("Spread Probability", 0.6, 0.0, 1.0, 0.05),
+    "exposure_threshold": NumberInput("Exposure Threshold", value=2),
+    "fact_checker_ratio": NumberInput("Fact Checker Ratio", value=0.05),
+    "spread_probability": NumberInput("Spread Probability", value=0.05),
 }
 
 class ModelWrapper:
     def __init__(self, model_type, *args, **kwargs):
-        filtered_kwargs = kwargs.copy()
+        custom_network = kwargs.pop('custom_network', None)
         
-        custom_network = filtered_kwargs.pop('custom_network', None)
-
         if model_type == "Rumor Spread":
+            # Keep all relevant parameters for RumorSpreadModel
             rumor_kwargs = {
-                k: filtered_kwargs[k] 
-                for k in ["num_agents", "avg_node_degree", "initial_outbreak_size", 
-                         "prob_infect", "prob_accept_deny", "prob_make_denier"]
-                if k in filtered_kwargs
+                k: v for k, v in kwargs.items()
+                if k in ["num_agents", "avg_node_degree", "initial_outbreak_size",
+                        "prob_infect", "prob_accept_deny", "prob_make_denier"]
             }
-            rumor_kwargs.pop('initial_outbreak_size', None)
+            # Ensure avg_node_degree is passed (it's missing in your current code)
+            if 'avg_node_degree' not in rumor_kwargs:
+                rumor_kwargs['avg_node_degree'] = 5  # or some default
             self.model = RumorSpreadModel(**rumor_kwargs, custom_network=custom_network)
         else:
+            # Keep all relevant parameters for MisinformationModel
             misinfo_kwargs = {
-                k: filtered_kwargs[k] 
-                for k in ["num_agents", "m_links", 
-                         "exposure_threshold", "fact_checker_ratio", "spread_probability"]
-                if k in filtered_kwargs
+                k: v for k, v in kwargs.items()
+                if k in ["num_agents", "m_links", "exposure_threshold", 
+                        "fact_checker_ratio", "spread_probability"]
             }
             self.model = MisinformationModel(**misinfo_kwargs, custom_network=custom_network)
     
