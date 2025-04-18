@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 
-adj_matrix = np.load("adjacency_matrix.npy")
+adj_matrix = np.load("balanced-ge2.npy")
 G = nx.from_numpy_array(adj_matrix)
 
 edge_betweenness = nx.edge_betweenness_centrality(G)

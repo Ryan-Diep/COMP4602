@@ -1,3 +1,6 @@
 mesa==1.2.1
 networkx
 numpy
+matplotlib
+scipy
+pandas
