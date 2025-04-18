@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-adj_matrix = np.load("adjacency_matrix.npy")
+adj_matrix = np.load("high-truth-ge2.npy")
 G = nx.from_numpy_array(adj_matrix)
 
 pagerank_scores = nx.pagerank(G)
