@@ -32,18 +32,24 @@ class SocialAgent(Agent):
     def step(self):
         if self.state == "Infected":
             for neighbor in self.model.graph.neighbors(self.unique_id):
-                other = self.model.schedule.agents[neighbor]
-                if other.state == "Susceptible":
-                    other.exposure_count += 1
+                neighbor_agent = self.model.schedule.agents[neighbor]
+                if neighbor_agent.state == "Susceptible":
+                    if self.random.random() < self.model.prob_infect:
+                        neighbor_agent.state = "Infected"
+                    elif self.random.random() < self.model.prob_make_denier:
+                        neighbor_agent.state = "Resistant"
+                    else:
+                        neighbor_agent.exposure_count += 1
                     
         if self.state == "Susceptible" and self.exposure_count >= self.model.exposure_threshold:
             self.state = "Exposed"
-        elif self.state == "Exposed" and self.exposure_count >= self.model.exposure_threshold:
-            if self.random.random() < self.model.spread_probability:
+        elif self.state == "Exposed":
+            if self.random.random() < self.model.prob_infect:
                 self.state = "Infected"
                 
-        if self.unique_id in self.model.beacons:
+        if self.state == "Resistant":
             for neighbor in self.model.graph.neighbors(self.unique_id):
-                other = self.model.schedule.agents[neighbor]
-                if other.state in ["Susceptible", "Exposed"]:
-                    other.state = "Resistant"
+                neighbor_agent = self.model.schedule.agents[neighbor]
+                if neighbor_agent.state in ["Susceptible", "Exposed"]:
+                    if self.random.random() < self.model.prob_accept_deny:
+                        neighbor_agent.state = "Resistant"
