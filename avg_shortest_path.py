@@ -2,7 +2,8 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
-adj_matrix = np.load("adjacency_matrix.npy")
+adj_matrix = np.load("balanced-ge2.npy")
+
 G = nx.from_numpy_array(adj_matrix)
 if not nx.is_connected(G):
     #focuses on the largest connected component

@@ -27,7 +27,8 @@ def calculate_average_clustering_coefficient(adj_matrix):
 # Example usage:
 if __name__ == "__main__":
     # Load an example adjacency matrix
-    path = "../adjacency_matrix-no-filter-following.npy"  # Replace with your file path
+    # path = "high-truth-ge1.npy"  # Replace with your file path
+    path = "balanced-ge2.npy"  # Replace with your file path
     adj_matrix = np.load(path)
 
     clustering_coeffs = calculate_clustering_coefficients_with_networkx(adj_matrix)

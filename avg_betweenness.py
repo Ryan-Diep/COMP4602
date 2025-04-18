@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 
-adj_matrix = np.load("high-truth-ge2.npy")
+adj_matrix = np.load("balanced-ge2.npy")
 G = nx.from_numpy_array(adj_matrix)
 
 betweenness = nx.betweenness_centrality(G)
